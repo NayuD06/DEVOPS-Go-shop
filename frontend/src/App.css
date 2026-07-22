@@ -8,7 +8,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+  background: linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #0b1319);
   background-size: 400% 400%;
   animation: gradientBG 15s ease infinite;
   color: #fff;
@@ -86,7 +86,7 @@ button {
   padding: 12px 24px;
   border: 0;
   border-radius: 12px;
-  background: linear-gradient(135deg, #6e8efb, #a777e3);
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
   color: #fff;
   cursor: pointer;
   font-weight: 600;
@@ -186,7 +186,7 @@ button.danger {
   font-weight: 700; 
   font-size: 1.3rem;
   color: #fff; 
-  background: linear-gradient(135deg, #11998e, #38ef7d);
+  background: linear-gradient(135deg, #00b4db, #0083b0);
   display: inline-block;
   padding: 6px 16px;
   border-radius: 20px;
