@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
+import { 
+  ShoppingBag, 
+  PackagePlus, 
+  Image as ImageIcon, 
+  Pencil, 
+  Trash2, 
+  X, 
+  Save 
+} from 'lucide-react'
 import './App.css'
 
 const emptyForm = { name: '', price: '', description: '' }
@@ -17,8 +26,12 @@ function App() {
   }, [])
 
   async function fetchProducts() {
-    const res = await axios.get('/api/products')
-    setProducts(res.data)
+    try {
+      const res = await axios.get('/api/products')
+      setProducts(res.data)
+    } catch (error) {
+      console.error("Lỗi khi tải sản phẩm:", error)
+    }
   }
 
   // Gõ vào ô input nào thì cập nhật field đó trong form
@@ -31,13 +44,10 @@ function App() {
     e.preventDefault()
     setLoading(true)
     try {
-      // Gửi kèm file ảnh → BẮT BUỘC dùng FormData (multipart/form-data),
-      // không gửi JSON thường được
       const data = new FormData()
       data.append('name', form.name)
       data.append('price', form.price)
       data.append('description', form.description)
-      // "image" phải trùng tên field backend đọc: c.FormFile("image")
       if (imageFile) data.append('image', imageFile)
 
       if (editingId) {
@@ -54,7 +64,7 @@ function App() {
     }
   }
 
-  // Bấm nút Sửa trên 1 card → đổ dữ liệu sản phẩm đó lên form
+  // Bấm nút Sửa trên 1 card
   function startEdit(product) {
     setEditingId(product.id)
     setForm({
@@ -77,81 +87,133 @@ function App() {
     setForm(emptyForm)
     setImageFile(null)
     setEditingId(null)
-    document.getElementById('imageInput').value = ''
+    const fileInput = document.getElementById('imageInput')
+    if (fileInput) fileInput.value = ''
   }
 
   return (
-    <div className="container">
-      <h1>🛒 Go Shop — Quản lý sản phẩm</h1>
+    <div className="layout-wrapper">
+      <header>
+        <h1><ShoppingBag size={28} color="#2563eb" /> Go Shop</h1>
+      </header>
 
-      {/* ---- FORM THÊM / SỬA ---- */}
-      <form className="card" onSubmit={handleSubmit}>
-        <h2>{editingId ? 'Sửa sản phẩm' : 'Thêm sản phẩm'}</h2>
-        <input
-          name="name"
-          placeholder="Tên sản phẩm"
-          value={form.name}
-          onChange={handleChange}
-          required
-        />
-        <input
-          name="price"
-          type="number"
-          min="0"
-          placeholder="Giá (VND)"
-          value={form.price}
-          onChange={handleChange}
-          required
-        />
-        <textarea
-          name="description"
-          placeholder="Mô tả"
-          value={form.description}
-          onChange={handleChange}
-        />
-        <input
-          id="imageInput"
-          type="file"
-          accept="image/*"
-          onChange={(e) => setImageFile(e.target.files[0])}
-        />
-        <div className="actions">
-          <button type="submit" disabled={loading}>
-            {editingId ? 'Cập nhật' : 'Thêm mới'}
-          </button>
-          {editingId && (
-            <button type="button" onClick={resetForm}>
-              Huỷ
-            </button>
+      <div className="main-content">
+        {/* ---- FORM THÊM / SỬA ---- */}
+        <div className="form-section">
+          <h2>
+            <PackagePlus size={20} />
+            {editingId ? 'Sửa sản phẩm' : 'Thêm sản phẩm'}
+          </h2>
+          <form onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label>Tên sản phẩm</label>
+              <input
+                name="name"
+                placeholder="Nhập tên sản phẩm..."
+                value={form.name}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>Giá (VND)</label>
+              <input
+                name="price"
+                type="number"
+                min="0"
+                placeholder="0"
+                value={form.price}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Mô tả chi tiết</label>
+              <textarea
+                name="description"
+                placeholder="Nhập mô tả sản phẩm..."
+                value={form.description}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Hình ảnh</label>
+              <input
+                id="imageInput"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImageFile(e.target.files[0])}
+              />
+            </div>
+
+            <div className="actions">
+              <button type="submit" className="primary" disabled={loading}>
+                {editingId ? <Save size={16} /> : <PackagePlus size={16} />}
+                {editingId ? 'Lưu thay đổi' : 'Thêm mới'}
+              </button>
+              {editingId && (
+                <button type="button" className="secondary" onClick={resetForm}>
+                  <X size={16} /> Huỷ
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+
+        {/* ---- LƯỚI CARD SẢN PHẨM ---- */}
+        <div className="products-section">
+          {products.length === 0 ? (
+            <div className="empty-state">
+              <PackagePlus size={48} strokeWidth={1} />
+              <p>Chưa có sản phẩm nào. Hãy thêm sản phẩm đầu tiên!</p>
+            </div>
+          ) : (
+            <div className="grid">
+              {products.map((product) => (
+                <div className="card product" key={product.id}>
+                  <div className="product-image">
+                    {product.image ? (
+                      <img src={product.image} alt={product.name} />
+                    ) : (
+                      <div className="no-image">
+                        <ImageIcon size={32} opacity={0.5} />
+                        <span>Chưa có ảnh</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="product-info">
+                    <h3>{product.name}</h3>
+                    <p className="price">
+                      {Number(product.price).toLocaleString('vi-VN')} ₫
+                    </p>
+                    <p className="desc">{product.description}</p>
+                    
+                    <div className="product-actions">
+                      <button 
+                        className="icon-only" 
+                        onClick={() => startEdit(product)}
+                        title="Sửa"
+                      >
+                        <Pencil size={18} />
+                      </button>
+                      <button 
+                        className="icon-only danger-text" 
+                        onClick={() => handleDelete(product.id)}
+                        title="Xoá"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
-      </form>
-
-      {/* ---- LƯỚI CARD SẢN PHẨM ---- */}
-      <div className="grid">
-        {products.map((product) => (
-          <div className="card product" key={product.id}>
-            {product.image ? (
-              <img src={product.image} alt={product.name} />
-            ) : (
-              <div className="no-image">Chưa có ảnh</div>
-            )}
-            <h3>{product.name}</h3>
-            <p className="price">
-              {Number(product.price).toLocaleString('vi-VN')} ₫
-            </p>
-            <p>{product.description}</p>
-            <div className="actions">
-              <button onClick={() => startEdit(product)}>Sửa</button>
-              <button className="danger" onClick={() => handleDelete(product.id)}>
-                Xoá
-              </button>
-            </div>
-          </div>
-        ))}
-        {products.length === 0 && (
-          <p>Chưa có sản phẩm nào — thêm sản phẩm đầu tiên ở form trên 👆</p>
-        )}
       </div>
     </div>
   )
