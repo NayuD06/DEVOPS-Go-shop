@@ -82,3 +82,15 @@ jobs:
             # Kiểm tra sống sau deploy — fail ở đây thì workflow đỏ
             sleep 2
             curl -fs http://127.0.0.1:8080/api/health
+
+      # ---------- 5. Gửi thông báo qua Telegram ----------
+      - name: Gửi thông báo Telegram
+        if: always() # Chạy dù cho deploy có bị lỗi hay thành công
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            🚀 Trạng thái Deploy Go Shop: ${{ job.status }}
+            Người gửi: ${{ github.actor }}
+            Commit: ${{ github.event.head_commit.message }}
