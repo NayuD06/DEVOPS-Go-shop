@@ -1,0 +1,44 @@
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Go
+*.exe
+backend/backend
+backend/server
+vendor/
+
+# Node / Frontend
+node_modules/
+dist/
+build/
+out/
+.next/
+
+# Environment Variables / Secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/dummy.jpg
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
