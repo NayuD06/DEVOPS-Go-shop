@@ -1,0 +1,84 @@
+name: Deploy
+
+# Chỉ chạy khi push (hoặc merge PR) vào nhánh main
+on:
+  push:
+    branches: [main]
+
+# Không cho 2 lần deploy chạy chồng lên nhau
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---------- 1. Build backend Go ----------
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: backend/go.sum
+
+      - name: Test backend
+        working-directory: backend
+        run: go test ./...
+
+      - name: Build binary Linux
+        working-directory: backend
+        # CGO_ENABLED=0 → binary tĩnh, chạy được trên mọi Linux
+        # GOOS/GOARCH → build cho đúng hệ điều hành + CPU của VPS
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o server .
+
+      # ---------- 2. Build frontend React ----------
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      # ---------- 3. Copy sản phẩm build lên VPS ----------
+      - name: Copy binary + dist lên VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          source: "backend/server,frontend/dist"
+          target: /tmp/goshop-deploy
+
+      # ---------- 4. Kích hoạt bản mới trên VPS ----------
+      - name: Restart service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT }}
+          username: ${{ secrets.VPS_USER }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            set -e
+            # Binary: dùng mv (atomic) để tránh lỗi "text file busy" khi app đang chạy
+            mv /tmp/goshop-deploy/backend/server /root/DEVOPS-Go-shop/backend/goshop-api.new
+            chmod +x /root/DEVOPS-Go-shop/backend/goshop-api.new
+            mv -f /root/DEVOPS-Go-shop/backend/goshop-api.new /root/DEVOPS-Go-shop/backend/goshop-api
+
+            # Frontend: thay toàn bộ dist cũ bằng code mới
+            rm -rf /var/www/goshop/*
+            mv /tmp/goshop-deploy/frontend/dist/* /var/www/goshop/
+            rm -rf /tmp/goshop-deploy
+
+            # Khởi động lại backend
+            systemctl restart goshop
+
+            # Kiểm tra sống sau deploy — fail ở đây thì workflow đỏ
+            sleep 2
+            curl -fs http://127.0.0.1:8080/api/health
